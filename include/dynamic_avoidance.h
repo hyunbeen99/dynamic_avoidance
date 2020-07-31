@@ -12,20 +12,17 @@
 #ifndef DYNAMIC_AVOIDANCE
 #define DYNAMIC_AVOIDANCE
 
+#define CAR_SPEED 2.1
+#define DIST_HP 5
+
 using namespace std;
 
 
 class DynamicAvoidance {
 	public:
 		//value 
-		int status_ = 0;
-		int angle_ = 15;
 		int standard_distance_ = 0;
 		
-
-		//flags 
-		int speed_zero_flag_;
-
 		//messages
 		geometry_msgs::Point nearestPoint_;
 		geometry_msgs::Point center_point_;
@@ -40,7 +37,7 @@ class DynamicAvoidance {
 	
 		DynamicAvoidance() {}
 		void exect();
-		double calcDistance (geometry_msgs::Point point_) {return pow(point_.x , 2) + (point_.y , 2) ;}
+		double calcDistance (geometry_msgs::Point point_) {return sqrt(pow(point_.x , 2) + (point_.y , 2)) ;}
 		void obstacleCallback (const obstacle_detector::Obstacles obs);
 				
 };

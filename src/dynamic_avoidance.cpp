@@ -14,21 +14,14 @@ void DynamicAvoidance::exect() {
 
 void DynamicAvoidance::obstacleCallback (const obstacle_detector::Obstacles obs) {
 
-	ackermann_pub_.publish(ackerData_);
-
 	obstacle_detector::SegmentObstacle nearest_segment ;
 	nearestPoint_.x = 100.0; 
 
-	ackerData_.drive.speed = 4;
-	ackerData_.drive.steering_angle = 0;
-
-	double dist;
-	
-	for (auto i : obs.segments) {
+   for (auto i : obs.segments) {
 		
 		center_point_.x = (i.first_point.x + i.last_point.x) / 2;
 		center_point_.y = (i.first_point.y + i.last_point.y) / 2;
-		dist = calcDistance(center_point_);
+		double dist = calcDistance(center_point_);
 		
 		if (nearestPoint_.x > dist) {
 			nearestPoint_ = center_point_;
@@ -37,13 +30,22 @@ void DynamicAvoidance::obstacleCallback (const obstacle_detector::Obstacles obs)
 	}
 
 	//for stop
-	standard_distance_ = calcDistance(center_point_);
-	if (nearest_segment.last_point.y > 0 && standard_distance_ == 6) {
+	standard_distance_ = calcDistance(nearestPoint_);
+	//if (0 < nearest_segment.last_point.y && standard_distance_ < DIST_HP) {
+	if (standard_distance_ < DIST_HP) {
 		ackerData_.drive.speed = 0;
 		ROS_INFO ("############stop##########END#MISSION#####");
-		speed_zero_flag_ = 1;
-		ros::Duration(5).sleep();
+		//ros::Duration(5).sleep();
+		ackerData_.drive.brake = 200;
+	} else {
+		ackerData_.drive.speed = CAR_SPEED;
+		ackerData_.drive.steering_angle = 0;
 	}
+
+	cout << "dist -> " << standard_distance_ << endl;
+
+	ackermann_pub_.publish(ackerData_);
+
 
 }
 
@@ -53,14 +55,10 @@ int main(int argc, char** argv) {
 	ros::init(argc, argv, "dynamic_avoidance_node");
 
 	DynamicAvoidance node;
-
-        ros::spin();
+	node.exect();
+    	ros::spin();
 
 	return 0;
 	
 }
-
-
-
-
 
