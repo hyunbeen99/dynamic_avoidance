@@ -4,49 +4,57 @@
 using namespace std;
 
 
-
 void DynamicAvoidance::exect() {
 
-	ackermann_msgs::AckermannDriveStamped ackerData_;
 	sub_ = nh_.subscribe("raw_obstacles", 1, &DynamicAvoidance::obstacleCallback, this);
-	ackermann_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ctrl_cmd", 10);
+	flag_pub_ = nh_.advertise<std_msgs::Bool>("/dynamic_stop_flag", 10);
+
+	stop_once_flag_ = false;
+
 }
 
 void DynamicAvoidance::obstacleCallback (const obstacle_detector::Obstacles obs) {
 
-	obstacle_detector::SegmentObstacle nearest_segment ;
-	nearestPoint_.x = 100.0; 
+	int cur_state = -1;
+	nh_.getParam("/kuuve_state", cur_state);
 
-   for (auto i : obs.segments) {
+	std_msgs::Bool stop_flag_to_kuuve_control;
+
+	if(cur_state == 3) { // 3 is DYNAMIC state in KUUVe Control
+		obstacle_detector::SegmentObstacle nearest_segment ;
+		nearestPoint_.x = 100.0; 
+
+	   for (auto i : obs.segments) {
+			
+			center_point_.x = (i.first_point.x + i.last_point.x) / 2;
+			center_point_.y = (i.first_point.y + i.last_point.y) / 2;
+			double dist = calcDistance(center_point_);
+			
+			if (nearestPoint_.x > dist) {
+				nearestPoint_ = center_point_;
+				nearest_segment = i;
+			}		
+		}
+
+		standard_distance_ = calcDistance(nearestPoint_);
+
+		if (standard_distance_ < DIST_HP) {
+			ROS_INFO ("############stop##########END#MISSION#####"); 
 		
-		center_point_.x = (i.first_point.x + i.last_point.x) / 2;
-		center_point_.y = (i.first_point.y + i.last_point.y) / 2;
-		double dist = calcDistance(center_point_);
+			stop_flag_to_kuuve_control.data = true;
+			stop_once_flag_ = true;
+
+		} else {
+			stop_flag_to_kuuve_control.data = false;
+
+			if(stop_once_flag_ == true){
+				ros::shutdown();
+			}
+		}
 		
-		if (nearestPoint_.x > dist) {
-			nearestPoint_ = center_point_;
-			nearest_segment = i;
-		}		
+		flag_pub_.publish(stop_flag_to_kuuve_control);
+		cout << "dist -> " << standard_distance_ << endl;
 	}
-
-	//for stop
-	standard_distance_ = calcDistance(nearestPoint_);
-	//if (0 < nearest_segment.last_point.y && standard_distance_ < DIST_HP) {
-	if (standard_distance_ < DIST_HP) {
-		ackerData_.drive.speed = 0;
-		ROS_INFO ("############stop##########END#MISSION#####");
-		//ros::Duration(5).sleep();
-		ackerData_.drive.brake = 200;
-	} else {
-		ackerData_.drive.speed = CAR_SPEED;
-		ackerData_.drive.steering_angle = 0;
-	}
-
-	cout << "dist -> " << standard_distance_ << endl;
-
-	ackermann_pub_.publish(ackerData_);
-
-
 }
 
 
@@ -56,9 +64,8 @@ int main(int argc, char** argv) {
 
 	DynamicAvoidance node;
 	node.exect();
-    	ros::spin();
+	ros::spin();
 
 	return 0;
-	
 }
 
