@@ -48,7 +48,9 @@ void DynamicAvoidance::obstacleCallback (const obstacle_detector::Obstacles obs)
 			stop_flag_to_kuuve_control.data = false;
 
 			if(stop_once_flag_ == true){
-				nh_.setParam("/dynamic_finish", true);
+
+				bool is_dynamic_finished = true;
+				nh_.setParam("/dynamic_finish", is_dynamic_finished);
 				ros::shutdown();
 			}
 		}
