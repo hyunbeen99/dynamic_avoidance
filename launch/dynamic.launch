@@ -8,7 +8,7 @@
 
   <!--include file="$(find platform_control)/src/write_serial.cpp" /-->
 
-  <!--include file="$(find lms1xx)/launch/LMS1xx.launch" /-->
+  <include file="$(find lms1xx)/launch/LMS1xx.launch" />
 
   
   <node pkg="dynamic_avoidance" name="dynamic_avoidance" type="dynamic_avoidance_node" output="screen">
@@ -23,7 +23,7 @@
   </node>
 
   <node name="obstacle_extractor" pkg="obstacle_detector" type="obstacle_extractor_node">
-	<remap from="scan" to="dynamic_avoidance_scan_filtered"/>
+	<remap from="laser_scan" to="dynamic_avoidance_scan_filtered"/>
 	<!--<remap from="raw_obstacles" to="narrow_path_raw_obstacles"/>-->
     <param name="active"               value="true"/>
     <param name="use_scan"             value="true"/>

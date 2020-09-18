@@ -7,20 +7,25 @@ using namespace std;
 void DynamicAvoidance::exect() {
 
 	sub_ = nh_.subscribe("raw_obstacles", 1, &DynamicAvoidance::obstacleCallback, this);
+	state_sub_ = nh_.subscribe("/kuuve_msgs", 1, &DynamicAvoidance::stateCallback, this);
 	flag_pub_ = nh_.advertise<std_msgs::Bool>("/dynamic_stop_flag", 10);
+	state_pub_ = nh_.advertise<std_msgs::Bool>("/isDynamicFinished_", 10);
+	
 
 	stop_once_flag_ = false;
 
 }
 
+void DynamicAvoidance::stateCallback(const kuuve_control::Kuuve::ConstPtr &state){
+	cur_state_ = state->kuuve_state;
+}
+
 void DynamicAvoidance::obstacleCallback (const obstacle_detector::Obstacles obs) {
 
-	int cur_state = -1;
-	nh_.getParam("/kuuve_state", cur_state);
 
 	std_msgs::Bool stop_flag_to_kuuve_control;
 
-	if(cur_state == 3) { // 3 is DYNAMIC state in KUUVe Control
+	if(cur_state_ == 3) { // 3 is DYNAMIC state in KUUVe Control
 		obstacle_detector::SegmentObstacle nearest_segment ;
 		nearestPoint_.x = 100.0; 
 
@@ -49,8 +54,9 @@ void DynamicAvoidance::obstacleCallback (const obstacle_detector::Obstacles obs)
 
 			if(stop_once_flag_ == true){
 
-				bool is_dynamic_finished = true;
-				nh_.setParam("/dynamic_finish", is_dynamic_finished);
+				isDynamicFinished_.data = true;
+				state_pub_.publish(isDynamicFinished_);
+
 				ros::shutdown();
 			}
 		}
